@@ -1,15 +1,12 @@
-import PropTypes from 'prop-types';
-export const ImageGalleryItem = ({src, alt, onClick, largeImageURL }) => {
-return(
-  <li>
-  <img src={src} alt={alt} onClick={onClick} data-src={largeImageURL}/>
-</li>
-)
-}
+import { Item, ItemImg } from './ImageGalleryItem.styled.js';
 
-ImageGalleryItem.propTypes = {
-  src: PropTypes.string.isRequired,
-  alt: PropTypes.string.isRequired,
-  largeImageURL: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired,
+export const ImageGalleryItem = ({
+  image: { id, smallImageURL, tag },
+  onClick,
+}) => {
+  return (
+    <Item className="gallery-item" onClick={() => onClick(id)}>
+      <ItemImg src={smallImageURL} alt={tag} />
+    </Item>
+  );
 };

@@ -1,122 +1,149 @@
-import { Component } from 'react';
+import React, { Component } from 'react';
+import { Loader } from './Loader/Loader';
 import { Searchbar } from './Searchbar/Searchbar';
-import { getImages } from './API/API';
 import { ImageGallery } from './ImageGallery/ImageGallery';
+import { ImageGalleryItem } from './ImageGalleryItem/ImageGalleryItem';
+import { fetchImages } from '../Api';
+import { Button } from './Button/Button';
+import { Modal } from './Modal/Modal';
+import { Wrapper } from './App.styled.js';
 
 export class App extends Component {
- state = {
-  query: '',
-  images: [],
-  page: 1,
-  loading: false,
-  total: null,
-  totalHits: null,
- }
- updateQuery = value => {
-  this.setState({
-    query: value,
-    page: 1,
+  state = {
+    searchValue: '',
     images: [],
-  });
-  console.log(value);
-};
+    totalHits: null,
+    total: null,
+    error: '',
+    isLoading: false,
+    page: 1,
+    modal: {
+      tag: '',
+      largeImgURL: '',
+    },
+  };
 
-getImg = async () => {
+  updateStateQuery = value => {
+    this.setState({
+      searchValue: value,
+      images: [],
+      page: 1,
+    });
+  };
 
-  try {
-    if (!this.state.query) {
-      console.log(this.state.query);
-      return;
-    }
-    this.setState({ isLoading: true });
+  getImages = async () => {
+    try {
+      this.setState({ isLoading: true });
 
-    const pictures = await getImages(
-      this.state.page, 
-      this.state.query);
+      const pictures = await fetchImages(
+        this.state.searchValue,
+        this.state.page
+      );
 
       const picturesInfo = pictures.hits.map(
         ({ webformatURL, largeImageURL, id, tags }) => ({
           id,
-          webformatURL,
-          largeImageURL,
+          smallImageURL: webformatURL,
+          largeImageURL: largeImageURL,
           tags,
         })
       );
-      
+
+      this.setState(prevState => ({
+        totalHits: pictures.totalHits,
+        images: [...prevState.images, ...picturesInfo],
+        total: pictures.total,
+      }));
+      this.setState({ isLoading: false });
+
+      if (!pictures.hits.length) {
+        return ('There is no images found with that search request');
+      }
+    } catch (error) {
+      this.setState({ error });
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  };
+
+  async componentDidUpdate(_, prevState) {
+    const prevSearchValue = prevState.searchValue;
+    const currentSearchValue = this.state.searchValue;
+    const prevPage = prevState.page;
+    const currentPage = this.state.page;
+
+    if (prevPage !== currentPage || prevSearchValue !== currentSearchValue) {
+      this.getImages();
+    }
+
+    if (prevSearchValue !== currentSearchValue) {
+      this.setState({
+        images: [],
+        page: 1,
+      });
+    }
+  }
+
+  moreImages = () => {
     this.setState(prevState => ({
-      images: [...prevState.images, ...picturesInfo],
-      isLoading: false,
-      total: pictures.total,
-      totalHits: pictures.totalHits,
+      page: prevState.page + 1,
     }));
-  } catch (error) {
-    this.setState({ error: true, isLoading: false });
-    console.log(error);
-  }
-};
-async componentDidUpdate(_, prevState) {
-  const prevRequest = prevState.query;
-  const nextRequest = this.state.query;
-  const prevPage = prevState.page;
-  const nextPage = this.state.page;
+  };
 
-  if (prevRequest !== nextRequest) {
-    // console.log(this.state, 'update')
-    this.state.images = [];
-    this.state.page = 1;
-    this.getImg();
-  }
-  if (prevPage !== nextPage) {
-    this.getImg();
+  showImgModal = id => {
+    const selectedPicture = this.state.images.find(image => image.id === id);
+
+    this.setState({
+      modal: {
+        tag: selectedPicture.tags,
+        largeImgURL: selectedPicture.largeImageURL,
+      },
+    });
+  };
+
+  closeImgModal = () => {
+    this.setState({
+      modal: {
+        tag: '',
+        largeImgURL: '',
+      },
+    });
+  };
+
+  render() {
+    const { images, isLoading, totalHits, modal, error, searchValue } =
+      this.state;
+    return (
+      <Wrapper>
+        <Searchbar
+          updateStateQuery={this.updateStateQuery}
+          searchValue={searchValue}
+        />
+        {error && (`Whoops, something went wrong: ${error.message}`)}
+        {images.length > 0 && (
+          <ImageGallery>
+            {images.map(image => {
+              return (
+                <ImageGalleryItem
+                  key={image.id}
+                  image={image}
+                  id={image.id}
+                  onClick={this.showImgModal}
+                />
+              );
+            })}
+          </ImageGallery>
+        )}
+        {totalHits > 12 && !isLoading && images.length !== totalHits && (
+          <Button moreImages={this.moreImages} />
+        )}
+        {isLoading && <Loader />}
+        {modal.largeImgURL !== '' && (
+          <Modal dataModal={modal} closeModal={this.closeImgModal} />
+        )}
+    
+   
+      </Wrapper>
+    );
   }
 }
-loadMore = async () => {
-  this.setState(prevState => ({
-    page: prevState.page + 1,
-  }));
-};
-
-toggleModal = evt => {
- console.log('yes');
-};
- render(){
-  const { isLoading, images } = this.state;
-  return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 40,
-          color: '#010101'
-        }}
-      >
-      <Searchbar updateQuery={this.updateQuery}/>
-      {images.length === 0 && !isLoading && (
-          <p
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              fontSize: '75px',
-              fontWeight: 'bold',
-              fontStyle: 'italic',
-              color: '#87a9c7',
-            }}
-          >
-            There`re no images yet. Please enter the search category!
-          </p>
-        )}
-         {images.length !== 0 && (
-          <>
-            <ImageGallery data={images} onClick={this.toggleModal} />
-          </>
-        )}
-        
-      </div>
-  );
- }
- 
-}
-

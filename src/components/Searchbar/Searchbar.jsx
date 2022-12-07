@@ -1,53 +1,48 @@
-import { Field, Form, Formik} from "formik"
+import React, { Component } from 'react';
+import { FaSearch } from 'react-icons/fa';
+import { Header, Form, SearchButton, Input } from './Searchbar.styled.js';
 
-const initialValues = {
-  query: '',
-}
-
-export const Searchbar = ({ updateQuery }) => {
-  const handleSubmit = (values, { resetForm }) => {
-    updateQuery(values);
-    resetForm();
+export class Searchbar extends Component {
+  state = {
+    inputValue: '',
   };
 
+  onChange = evt => {
+    this.setState({ inputValue: evt.target.value });
+  };
 
-  return(
+  onSubmit = e => {
+    e.preventDefault();
+    const { inputValue } = this.state;
 
-    <Formik
-    initialValues={initialValues}
-    onSubmit={handleSubmit}
-    >
-     
-        <Form  autoComplete="off">
-          <button type="submit" >
-            <span>Search</span>
-          </button>
+    if (inputValue === '') {
+      return;
+    }
 
-          <Field
-            name="query"
+    if (inputValue === this.props.searchValue) {
+      this.setState({ inputValue: '' });
+      return;
+    }
+
+    this.props.updateStateQuery(inputValue);
+    this.setState({ inputValue: '' });
+  };
+
+  render() {
+    return (
+      <Header>
+        <Form onSubmit={this.onSubmit} autoComplete="off">
+          <SearchButton type="submit">
+            <FaSearch />
+          </SearchButton>
+          <Input
             type="text"
-            // autocomplete="off"
-            // autofocus
             placeholder="Search images and photos"
+            onChange={this.onChange}
+            value={this.state.inputValue}
           />
         </Form>
-      
-    </Formik>
-  )
+      </Header>
+    );
+  }
 }
-
-// {/* <header class="searchbar">
-//         <form class="form">
-//           <button type="submit" class="button">
-//             <span class="button-label">Search</span>
-//           </button>
-
-//           <input
-//             class="input"
-//             type="text"
-//             autocomplete="off"
-//             autofocus
-//             placeholder="Search images and photos"
-//           />
-//         </form>
-//       </header> */}
