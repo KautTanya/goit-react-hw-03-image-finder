@@ -5,6 +5,7 @@ import { ImageGallery } from './ImageGallery/ImageGallery';
 import { getImages } from 'API/Api';
 import { LoadButton } from './Button/Button';
 import Modal from './Modal/Modal';
+import { Block } from './App.styled';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -60,15 +61,11 @@ export class App extends Component {
     const prevPage = prevState.page;
     const nextPage = this.state.page;
 
-    if (prevRequest !== nextRequest) {
+    if (prevRequest !== nextRequest || prevPage !== nextPage ) {
     
-      this.state.images = [];
-      this.state.page = 1;
-      this.getImg();
+          this.getImg();
     }
-    if (prevPage !== nextPage) {
-      this.getImg();
-    }
+   
   }
 
   toastify = () => {
@@ -86,11 +83,12 @@ export class App extends Component {
     }));
   };
   openModal = evt => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  
     if (evt.target.nodeName !== 'IMG') {
       return;
     }
     this.setState({
+      showModal: true,
       modalData: {
         bigImg: evt.target.dataset.src,
         alt: evt.target.getAttribute('alt'),
@@ -98,8 +96,8 @@ export class App extends Component {
     });
   };
   closeModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
     this.setState({
+      showModal: false,
       modalData: {
         bigImg: '',
         alt: '',
@@ -111,14 +109,7 @@ export class App extends Component {
       this.state;
     const { bigImg, alt } = modalData;
     return (
-      <div
-        style={{
-          width: "1240px",
-          padding: '0 20px',
-          margin: '0 auto',
-                
-        }}
-      >
+      <Block>
         <SearchBar updateQuery={this.updateQuery} />
        
          {images.length !== 0 && (
@@ -156,7 +147,7 @@ export class App extends Component {
           pauseOnHover
           theme="colored"
         />
-      </div>
+      </Block>
     );
   }
 }
