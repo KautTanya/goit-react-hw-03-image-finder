@@ -1,149 +1,162 @@
-import React, { Component } from 'react';
-import { Loader } from './Loader/Loader';
-import { Searchbar } from './Searchbar/Searchbar';
+import { MagnifyingGlass } from 'react-loader-spinner';
+import { Component } from 'react';
+import { SearchBar } from './Searchbar/SearchBar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
-import { ImageGalleryItem } from './ImageGalleryItem/ImageGalleryItem';
-import { fetchImages } from '../Api';
-import { Button } from './Button/Button';
-import { Modal } from './Modal/Modal';
-import { Wrapper } from './App.styled.js';
+import { getImages } from 'API/Api';
+import { LoadButton } from './Button/Button';
+import Modal from './Modal/Modal';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export class App extends Component {
   state = {
-    searchValue: '',
+    query: '',
     images: [],
-    totalHits: null,
-    total: null,
-    error: '',
     isLoading: false,
+    error: false,
     page: 1,
-    modal: {
-      tag: '',
-      largeImgURL: '',
+    total: null,
+    totalHits: null,
+    showModal: false,
+    modalData: {
+      bigImg: '',
+      alt: '',
     },
   };
-
-  updateStateQuery = value => {
+  updateQuery = value => {
     this.setState({
-      searchValue: value,
-      images: [],
+      query: value.query,
       page: 1,
+      images: [],
     });
+    
   };
-
-  getImages = async () => {
+  getImg = async () => {
+   
     try {
+      if (!this.state.query) {
+        return 
+      }
+
       this.setState({ isLoading: true });
 
-      const pictures = await fetchImages(
-        this.state.searchValue,
-        this.state.page
-      );
-
-      const picturesInfo = pictures.hits.map(
-        ({ webformatURL, largeImageURL, id, tags }) => ({
-          id,
-          smallImageURL: webformatURL,
-          largeImageURL: largeImageURL,
-          tags,
-        })
-      );
-
+      const pictures = await getImages(this.state.page, this.state.query);
+      
       this.setState(prevState => ({
-        totalHits: pictures.totalHits,
-        images: [...prevState.images, ...picturesInfo],
+        images: [...prevState.images, ...pictures.images],
+        isLoading: false,
         total: pictures.total,
+        totalHits: pictures.totalHits,
       }));
-      this.setState({ isLoading: false });
-
-      if (!pictures.hits.length) {
-        return ('There is no images found with that search request');
-      }
+      
+      return this.toastify();
     } catch (error) {
-      this.setState({ error });
-    } finally {
-      this.setState({ isLoading: false });
+      this.setState({ error: true, isLoading: false });
     }
   };
-
   async componentDidUpdate(_, prevState) {
-    const prevSearchValue = prevState.searchValue;
-    const currentSearchValue = this.state.searchValue;
+    const prevRequest = prevState.query;
+    const nextRequest = this.state.query;
     const prevPage = prevState.page;
-    const currentPage = this.state.page;
+    const nextPage = this.state.page;
 
-    if (prevPage !== currentPage || prevSearchValue !== currentSearchValue) {
-      this.getImages();
+    if (prevRequest !== nextRequest) {
+    
+      this.state.images = [];
+      this.state.page = 1;
+      this.getImg();
     }
-
-    if (prevSearchValue !== currentSearchValue) {
-      this.setState({
-        images: [],
-        page: 1,
-      });
+    if (prevPage !== nextPage) {
+      this.getImg();
     }
   }
 
-  moreImages = () => {
+  toastify = () => {
+    const { total} = this.state;
+    if (total === 0) {
+      return toast.error(
+            'Sorry, there are no images matching your search query. Please try again.'
+          );
+    }
+  
+  }
+    loadMore = async () => {
     this.setState(prevState => ({
       page: prevState.page + 1,
     }));
   };
-
-  showImgModal = id => {
-    const selectedPicture = this.state.images.find(image => image.id === id);
-
+  openModal = evt => {
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
+    if (evt.target.nodeName !== 'IMG') {
+      return;
+    }
     this.setState({
-      modal: {
-        tag: selectedPicture.tags,
-        largeImgURL: selectedPicture.largeImageURL,
+      modalData: {
+        bigImg: evt.target.dataset.src,
+        alt: evt.target.getAttribute('alt'),
       },
     });
   };
-
-  closeImgModal = () => {
+  closeModal = () => {
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
     this.setState({
-      modal: {
-        tag: '',
-        largeImgURL: '',
+      modalData: {
+        bigImg: '',
+        alt: '',
       },
     });
   };
-
   render() {
-    const { images, isLoading, totalHits, modal, error, searchValue } =
+    const { images, isLoading, total, totalHits, showModal, modalData } =
       this.state;
+    const { bigImg, alt } = modalData;
     return (
-      <Wrapper>
-        <Searchbar
-          updateStateQuery={this.updateStateQuery}
-          searchValue={searchValue}
+      <div
+        style={{
+          width: "1240px",
+          padding: '0 20px',
+          margin: '0 auto',
+                
+        }}
+      >
+        <SearchBar updateQuery={this.updateQuery} />
+       
+         {images.length !== 0 && (
+          <>
+            <ImageGallery data={images} onClick={this.openModal} />{' '}
+          </>
+        )}
+        {total >= 12 && images.length !== totalHits && !isLoading && (
+          <LoadButton click={this.loadMore} />
+        )}
+
+        {isLoading && (
+          <MagnifyingGlass
+              visible={true}
+              height="180"
+              width="180"
+              ariaLabel="MagnifyingGlass-loading"
+              wrapperStyle={{}}
+              wrapperClass="MagnifyingGlass-wrapper"
+              glassColor = '#c0efff'
+              color = '#e15b64'
         />
-        {error && (`Whoops, something went wrong: ${error.message}`)}
-        {images.length > 0 && (
-          <ImageGallery>
-            {images.map(image => {
-              return (
-                <ImageGalleryItem
-                  key={image.id}
-                  image={image}
-                  id={image.id}
-                  onClick={this.showImgModal}
-                />
-              );
-            })}
-          </ImageGallery>
         )}
-        {totalHits > 12 && !isLoading && images.length !== totalHits && (
-          <Button moreImages={this.moreImages} />
-        )}
-        {isLoading && <Loader />}
-        {modal.largeImgURL !== '' && (
-          <Modal dataModal={modal} closeModal={this.closeImgModal} />
-        )}
-    
-   
-      </Wrapper>
+
+        {showModal && <Modal src={bigImg} alt={alt} close={this.closeModal} />}
+        <ToastContainer
+          position="top-right"
+          autoClose={2500}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+      </div>
     );
   }
 }

@@ -1,48 +1,40 @@
-import React, { Component } from 'react';
+import {  Formik } from 'formik';
+import { Header, Forma, Button, Input} from './SearchBar.styled';
+import PropTypes from 'prop-types';
 import { FaSearch } from 'react-icons/fa';
-import { Header, Form, SearchButton, Input } from './Searchbar.styled.js';
-
-export class Searchbar extends Component {
-  state = {
-    inputValue: '',
+const initialValues = {
+  query: '',
+  page: 1,
+};
+export const SearchBar = ({ updateQuery }) => {
+  const handleSubmit = (values, { resetForm }) => {
+    updateQuery(values);
+    resetForm();
   };
-
-  onChange = evt => {
-    this.setState({ inputValue: evt.target.value });
-  };
-
-  onSubmit = e => {
-    e.preventDefault();
-    const { inputValue } = this.state;
-
-    if (inputValue === '') {
-      return;
-    }
-
-    if (inputValue === this.props.searchValue) {
-      this.setState({ inputValue: '' });
-      return;
-    }
-
-    this.props.updateStateQuery(inputValue);
-    this.setState({ inputValue: '' });
-  };
-
-  render() {
-    return (
-      <Header>
-        <Form onSubmit={this.onSubmit} autoComplete="off">
-          <SearchButton type="submit">
-            <FaSearch />
-          </SearchButton>
+  return (
+    <Header>
+      <Formik initialValues={initialValues} onSubmit={handleSubmit}>
+        <Forma autoComplete="off">
           <Input
+            name="query"
             type="text"
+            autoComplete="off"
+            autoFocus
             placeholder="Search images and photos"
-            onChange={this.onChange}
-            value={this.state.inputValue}
           />
-        </Form>
-      </Header>
-    );
-  }
-}
+
+          <Button type="submit">
+            
+            <FaSearch />
+           
+          
+          </Button>
+        </Forma>
+      </Formik>
+    </Header>
+  );
+};
+
+SearchBar.propTypes = {
+  updateQuery: PropTypes.func.isRequired,
+};
